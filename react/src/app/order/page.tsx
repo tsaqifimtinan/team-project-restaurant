@@ -1,7 +1,7 @@
+"use client";
 import Image from "next/image";
 import Link from 'next/link';
-
-// src/app/order/page.tsx
+import { useState } from 'react';
 import MenuItem from '../components/MenuItem';
 
 const menuItems = [
@@ -71,14 +71,63 @@ const menuItems = [
 ];
 
 export default function OrderPage() {
+  const [cart, setCart] = useState<{
+    id: number;
+    name: string;
+    price: number;
+    quantity: number;
+  }[]>([]);
+
+  const addToCart = (item: typeof menuItems[0]) => {
+    setCart(prevCart => {
+      const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
+      if (existingItem) {
+        return prevCart.map(cartItem =>
+          cartItem.id === item.id
+            ? { ...cartItem, quantity: cartItem.quantity + 1 }
+            : cartItem
+        );
+      }
+      return [...prevCart, { ...item, quantity: 1 }];
+    });
+  };
+
+  const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
+  const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+
   return (
     <div className="min-h-screen bg-gray-900 text-white font-[family-name:var(--font-geist-sans)]">
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        <h1 className="text-4xl sm:text-6xl font-bold mb-6">Order Online</h1>
+        <div className="flex justify-between items-center mb-12">
+          <Link href="/">
+            <h1 className="text-4xl sm:text-6xl font-bold hover:text-blue-400 transition-colors cursor-pointer">
+              Order Online
+            </h1>
+          </Link>
+          
+          <Link href="/cart" className="relative group">
+            <div className="flex items-center gap-2 bg-blue-600 px-4 py-2 rounded-full hover:bg-blue-700 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <span className="font-semibold">{cartItemCount}</span>
+              {cartItemCount > 0 && (
+                <span className="ml-2 hidden group-hover:inline">
+                  ${cartTotal.toFixed(2)}
+                </span>
+              )}
+            </div>
+          </Link>
+        </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
           {menuItems.map((item) => (
-            <MenuItem key={item.id} {...item} />
+            <MenuItem 
+              key={item.id} 
+              {...item} 
+              onAddToCart={() => addToCart(item)}
+              quantity={cart.find(cartItem => cartItem.id === item.id)?.quantity || 0}
+            />
           ))}
         </div>
       </main>

@@ -1,6 +1,5 @@
-// Create a new file: src/app/components/MenuItem.tsx
-'use client';
-
+// components/MenuItem.tsx
+"use client";
 import Image from "next/image";
 
 type MenuItemProps = {
@@ -9,9 +8,18 @@ type MenuItemProps = {
   description: string;
   price: number;
   image: string;
-}
+  onAddToCart: () => void;
+  quantity: number;
+};
 
-export default function MenuItem({ id, name, description, price, image }: MenuItemProps) {
+export default function MenuItem({ 
+  name, 
+  description, 
+  price, 
+  image, 
+  onAddToCart,
+  quantity 
+}: MenuItemProps) {
   return (
     <div className="bg-gray-800 rounded-lg overflow-hidden shadow-lg">
       <div className="relative h-48 w-full">
@@ -29,12 +37,15 @@ export default function MenuItem({ id, name, description, price, image }: MenuIt
         </div>
         <p className="text-gray-400 mb-4">{description}</p>
         <button 
-          className="w-full bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition-colors"
-          onClick={() => {
-            console.log(`Ordered: ${name}`);
-          }}
+          onClick={onAddToCart}
+          className="w-full bg-blue-600 text-white px-4 py-2 rounded-full hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
         >
-          Add to Order
+          Add to Cart
+          {quantity > 0 && (
+            <span className="bg-blue-500 px-2 py-1 rounded-full text-sm">
+              {quantity}
+            </span>
+          )}
         </button>
       </div>
     </div>

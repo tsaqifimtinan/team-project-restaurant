@@ -2,6 +2,8 @@
 import Image from "next/image";
 import Link from 'next/link';
 
+import { FaInstagram, FaTwitter, FaFacebook } from 'react-icons/fa';
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-900 text-white font-[family-name:var(--font-geist-sans)]">
@@ -82,6 +84,75 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <footer className="bg-gray-800 text-gray-300 mt-24">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* About Column */}
+            <div>
+              <h3 className="text-xl font-semibold mb-4">About Rain Report</h3>
+              <p className="text-gray-400">
+                A unique dining experience where culinary excellence meets artistic expression.
+                Join us for coffee, cuisine, and culture.
+              </p>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <h3 className="text-xl font-semibold mb-4">Quick Links</h3>
+              <ul className="space-y-2">
+                <li>
+                  <Link href="/" className="text-gray-400 hover:text-white transition-colors">
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/order" className="text-gray-400 hover:text-white transition-colors">
+                    Menu
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
+                    About Us
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/login" className="text-gray-400 hover:text-white transition-colors">
+                    Login
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            {/* Contact Info */}
+            <div>
+              <h3 className="text-xl font-semibold mb-4">Contact Us</h3>
+              <address className="text-gray-400 not-italic">
+                <p>123 Coffee Street</p>
+                <p>Jakarta, Indonesia</p>
+                <p className="mt-2">Phone: (123) 456-7890</p>
+                <p>Email: hello@rainreport.com</p>
+              </address>
+              <div className="flex gap-4 mt-4">
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <FaInstagram className="h-6 w-6" />
+                </a>
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <FaTwitter className="h-6 w-6" />
+                </a>
+                <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                  <FaFacebook className="h-6 w-6" />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {/* Copyright */}
+          <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; {new Date().getFullYear()} Rain Report. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
