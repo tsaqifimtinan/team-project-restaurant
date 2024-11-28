@@ -102,23 +102,28 @@ export default function Home() {
               <h3 className="text-xl font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/" className="text-gray-400 hover:text-white transition-colors">
-                    Home
+                  <Link href="/reservation" className="text-gray-400 hover:text-white transition-colors">
+                    Reservation
                   </Link>
                 </li>
                 <li>
                   <Link href="/order" className="text-gray-400 hover:text-white transition-colors">
-                    Menu
+                    Order Online
                   </Link>
                 </li>
                 <li>
-                  <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
-                    About Us
+                  <Link href="/events" className="text-gray-400 hover:text-white transition-colors">
+                    Events
                   </Link>
                 </li>
                 <li>
                   <Link href="/login" className="text-gray-400 hover:text-white transition-colors">
                     Login
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/admin" className="text-gray-400 hover:text-white transition-colors">
+                    Admin Dashboard
                   </Link>
                 </li>
               </ul>
