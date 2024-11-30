@@ -1,17 +1,52 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import api from '@/utils/api';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Add your login logic here
-    console.log('Login attempt:', { email, password });
+    setError('');
+    setLoading(true);
+  
+    console.log('Login dengan:', { email, password });
+    
+    try {
+      const response = await api.post('/auth/login', {
+        email,
+        password
+      });
+      
+      console.log('Response detail:', {
+        status: response.status,
+        data: response.data,
+        headers: response.headers
+      });
+  
+      if (response.data.token) {
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        router.push('/');
+      }
+    } catch (err: any) {
+      console.error('Login error detail:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      setError(err.response?.data?.error || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
   };
-
+  
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
       <div className="max-w-md w-full space-y-8 bg-gray-800 p-8 rounded-xl shadow-lg">
@@ -20,6 +55,13 @@ export default function LoginPage() {
             Sign in to your account
           </h2>
         </div>
+        
+        {error && (
+          <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded-lg text-sm text-center">
+            {error}
+          </div>
+        )}
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm space-y-4">
             <div>
@@ -70,9 +112,10 @@ export default function LoginPage() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign in
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
         </form>

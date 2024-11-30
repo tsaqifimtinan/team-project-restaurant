@@ -1,8 +1,13 @@
 "use client";
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import api from '@/utils/api';
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -10,10 +15,32 @@ export default function RegisterPage() {
     confirmPassword: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Add your registration logic here
-    console.log('Register attempt:', formData);
+    setError('');
+    setLoading(true);
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await api.post('/auth/register', {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password
+      });
+
+      if (response.data) {
+        router.push('/login');
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Registration failed');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,6 +58,13 @@ export default function RegisterPage() {
             Create your account
           </h2>
         </div>
+
+        {error && (
+          <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded-lg text-sm text-center">
+            {error}
+          </div>
+        )}
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm space-y-4">
             <div>
@@ -99,9 +133,10 @@ export default function RegisterPage() {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-lg text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Register
+              {loading ? 'Creating account...' : 'Register'}
             </button>
           </div>
         </form>
