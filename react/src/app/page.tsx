@@ -70,12 +70,21 @@ export default function Home() {
               <p className="text-xl text-gray-100 mb-8 drop-shadow-lg">
                 Experience authentic cuisine & coffee in a cozy atmosphere
               </p>
-              <Link 
-                href="/order" 
-                className="inline-block bg-blue-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Order Now
-              </Link>
+              {isLoggedIn ? (
+                <Link 
+                  href="/order" 
+                  className="inline-block bg-blue-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Order Now
+                </Link>
+              ) : (
+                <Link 
+                  href="/login" 
+                  className="inline-block bg-blue-600 text-white px-8 py-4 rounded-full text-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Login to Order
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -141,41 +150,45 @@ export default function Home() {
             <div>
               <h3 className="text-xl font-semibold mb-4">Quick Links</h3>
               <ul className="space-y-2">
-                <li>
-                  <Link href="/reservation" className="text-gray-400 hover:text-white transition-colors">
-                    Reservation
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/order" className="text-gray-400 hover:text-white transition-colors">
-                    Order Online
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/events" className="text-gray-400 hover:text-white transition-colors">
-                    Events
-                  </Link>
-                </li>
-                <li>
-                  {isLoggedIn ? (
-                    <button
-                      onClick={handleLogoutClick}
-                      className="text-gray-400 hover:text-white transition-colors"
-                    >
-                      Logout
-                    </button>
-                  ) : (
+                {!isLoggedIn ? (
+                  <li>
                     <Link href="/login" className="text-gray-400 hover:text-white transition-colors">
                       Login
                     </Link>
-                  )}
-                </li>
-                {user?.isAdmin && (
-                  <li>
-                    <Link href="/admin" className="text-gray-400 hover:text-white transition-colors">
-                      Admin Dashboard
-                    </Link>
                   </li>
+                ) : (
+                  <>
+                    <li>
+                      <Link href="/reservation" className="text-gray-400 hover:text-white transition-colors">
+                        Reservation
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/order" className="text-gray-400 hover:text-white transition-colors">
+                        Order Online
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/events" className="text-gray-400 hover:text-white transition-colors">
+                        Events
+                      </Link>
+                    </li>
+                    <li>
+                      <button
+                        onClick={handleLogoutClick}
+                        className="text-gray-400 hover:text-white transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </li>
+                    {user?.isAdmin && (
+                      <li>
+                        <Link href="/admin" className="text-gray-400 hover:text-white transition-colors">
+                          Admin Dashboard
+                        </Link>
+                      </li>
+                    )}
+                  </>
                 )}
               </ul>
             </div>
