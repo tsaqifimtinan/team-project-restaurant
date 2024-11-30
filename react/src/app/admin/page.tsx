@@ -1,10 +1,10 @@
 // src/app/admin/page.tsx
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import prisma from '@/lib/prisma';
 
-// You can use React Icons instead of Lucide
 import { FiUpload, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
 interface MenuItem {
@@ -60,15 +60,91 @@ export default function AdminDashboard() {
 
 // Menu Management Component
 function MenuManager() {
-    const [items, setItems] = useState<MenuItem[]>([
-      { id: 1, name: 'Signature Coffee', price: 4.50, description: 'Our house blend coffee', category: 'Drinks' }
-    ]);
-    const [formData, setFormData] = useState<Partial<MenuItem>>({});
+    const [items, setItems] = useState<MenuItem[]>([]);
+    const [formData, setFormData] = useState({
+        name: '',
+        price: '',
+        description: '',
+        category: '',
+        image: ''
+    });
     const [isEditing, setIsEditing] = useState(false);
-  
-    const handleSubmit = (e: React.FormEvent) => {
-      e.preventDefault();
-      // Add your submit logic here
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Add useEffect to fetch menu items when component mounts
+    useEffect(() => {
+        fetchMenuItems();
+    }, []);
+
+    // Function to fetch menu items
+    const fetchMenuItems = async () => {
+        try {
+            const response = await fetch('/api/menu');
+            if (response.ok) {
+                const data = await response.json();
+                setItems(data);
+            }
+        } catch (error) {
+            console.error('Error fetching menu items:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    // Modified handleSubmit to refresh items after submission
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const response = await fetch('/api/menu', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            });
+          
+            if (response.ok) {
+                // Reset form and refresh menu items
+                setFormData({
+                    name: '',
+                    price: '',
+                    description: '',
+                    category: '',
+                    image: ''
+                });
+                // Fetch updated list
+                fetchMenuItems();
+            }
+        } catch (error) {
+            console.error('Error adding menu item:', error);
+        }
+    };
+
+    // Add delete handler
+    const handleDelete = async (id: number) => {
+        try {
+            const response = await fetch(`/api/menu/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                fetchMenuItems();
+            }
+        } catch (error) {
+            console.error('Error deleting menu item:', error);
+        }
+    };
+
+    // Add edit handler
+    const handleEdit = async (item: MenuItem) => {
+        setFormData({
+            name: item.name,
+            price: item.price.toString(),
+            description: item.description,
+            category: item.category,
+            image: item.image || ''
+        });
+        setIsEditing(true);
     };
   
     return (
@@ -148,64 +224,365 @@ function MenuManager() {
   
         {/* Improved Table */}
         <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-700">
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Name</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Price</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Category</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-700">
-                {items.map(item => (
-                  <tr key={item.id} className="hover:bg-gray-750">
-                    <td className="px-6 py-4">{item.name}</td>
-                    <td className="px-6 py-4">${item.price.toFixed(2)}</td>
-                    <td className="px-6 py-4">{item.category}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-3">
-                        <button 
-                          className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
-                          onClick={() => {/* Edit logic */}}
-                        >
-                          <FiEdit2 className="w-5 h-5" />
-                        </button>
-                        <button 
-                          className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-red-400 hover:text-red-300"
-                          onClick={() => {/* Delete logic */}}
-                        >
-                          <FiTrash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                <div className="overflow-x-auto">
+                    {isLoading ? (
+                        <div className="p-4 text-center text-gray-400">Loading menu items...</div>
+                    ) : items.length === 0 ? (
+                        <div className="p-4 text-center text-gray-400">No menu items found</div>
+                    ) : (
+                        <table className="w-full">
+                            <thead>
+                                <tr className="bg-gray-700">
+                                    <th className="px-6 py-4 text-left text-sm font-semibold">Name</th>
+                                    <th className="px-6 py-4 text-left text-sm font-semibold">Price</th>
+                                    <th className="px-6 py-4 text-left text-sm font-semibold">Category</th>
+                                    <th className="px-6 py-4 text-left text-sm font-semibold">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-700">
+                                {items.map(item => (
+                                    <tr key={item.id} className="hover:bg-gray-750">
+                                        <td className="px-6 py-4">{item.name}</td>
+                                        <td className="px-6 py-4">${item.price.toFixed(2)}</td>
+                                        <td className="px-6 py-4">{item.category}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex gap-3">
+                                                <button 
+                                                    className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
+                                                    onClick={() => handleEdit(item)}
+                                                >
+                                                    <FiEdit2 className="w-5 h-5" />
+                                                </button>
+                                                <button 
+                                                    className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-red-400 hover:text-red-300"
+                                                    onClick={() => handleDelete(item.id)}
+                                                >
+                                                    <FiTrash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
       </div>
     );
 }
 
 // Event Management Component
 function EventManager() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    date: '',
+    time: '',
+    image: '',
+    capacity: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      if (response.ok) {
+        setFormData({
+          title: '',
+          description: '',
+          date: '',
+          time: '',
+          image: '',
+          capacity: ''
+        });
+        // Refresh events list
+      }
+    } catch (error) {
+      console.error('Error adding event:', error);
+    }
+  };
+
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Event Management</h2>
-      {/* Similar CRUD interface for events */}
+    <div className="space-y-8">
+      <h2 className="text-2xl font-bold">Event Management</h2>
+      
+      {/* Event Form */}
+      <div className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Event Title</label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Date</label>
+              <input
+                type="date"
+                name="date"
+                value={formData.date}
+                onChange={(e) => setFormData({...formData, date: e.target.value})}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Time</label>
+              <input
+                type="time"
+                name="time"
+                value={formData.time}
+                onChange={(e) => setFormData({...formData, time: e.target.value})}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Capacity</label>
+              <input
+                type="number"
+                name="capacity"
+                value={formData.capacity}
+                onChange={(e) => setFormData({...formData, capacity: e.target.value})}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm text-gray-400">Description</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                rows={4}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm text-gray-400">Image URL</label>
+              <input
+                type="text"
+                name="image"
+                value={formData.image}
+                onChange={(e) => setFormData({...formData, image: e.target.value})}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Add Event
+          </button>
+        </form>
+      </div>
+
+      {/* Events List */}
+      <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Title</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Capacity</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-gray-800 divide-y divide-gray-700">
+              {events.map((event) => (
+                <tr key={event.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{event.title}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{event.date}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{event.time}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{event.capacity}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                    <div className="flex gap-3">
+                      <button className="text-blue-400 hover:text-blue-300">Edit</button>
+                      <button className="text-red-400 hover:text-red-300">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
 
 // Promotion Management Component
 function PromotionManager() {
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    validUntil: '',
+    discountAmount: '',
+    code: ''
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('/api/promotions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      if (response.ok) {
+        setFormData({
+          title: '',
+          description: '',
+          validUntil: '',
+          discountAmount: '',
+          code: ''
+        });
+        // Refresh promotions list
+      }
+    } catch (error) {
+      console.error('Error adding promotion:', error);
+    }
+  };
+
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Promotion Management</h2>
-      {/* Similar CRUD interface for promotions */}
+    <div className="space-y-8">
+      <h2 className="text-2xl font-bold">Promotion Management</h2>
+      
+      {/* Promotion Form */}
+      <div className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Promotion Title</label>
+              <input
+                type="text"
+                name="title"
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Valid Until</label>
+              <input
+                type="date"
+                name="validUntil"
+                value={formData.validUntil}
+                onChange={(e) => setFormData({...formData, validUntil: e.target.value})}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Discount Amount</label>
+              <input
+                type="text"
+                name="discountAmount"
+                value={formData.discountAmount}
+                onChange={(e) => setFormData({...formData, discountAmount: e.target.value})}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+                placeholder="e.g., 20% or Free Dessert"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Promo Code</label>
+              <input
+                type="text"
+                name="code"
+                value={formData.code}
+                onChange={(e) => setFormData({...formData, code: e.target.value})}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <label className="text-sm text-gray-400">Description</label>
+              <textarea
+                name="description"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                rows={4}
+                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Add Promotion
+          </button>
+        </form>
+      </div>
+
+      {/* Promotions List */}
+      <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Title</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Code</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Discount</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Valid Until</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-gray-800 divide-y divide-gray-700">
+              {promotions.map((promo) => (
+                <tr key={promo.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{promo.title}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{promo.code}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{promo.discountAmount}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{promo.validUntil}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                    <div className="flex gap-3">
+                      <button className="text-blue-400 hover:text-blue-300">Edit</button>
+                      <button className="text-red-400 hover:text-red-300">Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

@@ -16,3 +16,43 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
+// Menu Item Model
+model MenuItem {
+  id          Int      @id @default(autoincrement())
+  name        String
+  price       Decimal  @db.Decimal(10,2)
+  description String   @db.Text
+  category    String
+  image       String?  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Event Model
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String   @db.Text
+  date        DateTime
+  time        String
+  image       String?
+  capacity    Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// Reservation Model
+model Reservation {
+  id             Int      @id @default(autoincrement())
+  name          String
+  email         String
+  phone         String
+  date          DateTime
+  time          String
+  guests        Int
+  specialRequests String? @db.Text
+  status        String   @default("pending") // pending, confirmed, cancelled
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
