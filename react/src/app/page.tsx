@@ -1,10 +1,50 @@
 "use client";
 import Image from "next/image";
 import Link from 'next/link';
-
+import { useState, useEffect } from 'react';
 import { FaInstagram, FaTwitter, FaFacebook } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  useEffect(() => {
+    // Check authentication status on component mount
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    if (token && userStr) {
+      setIsLoggedIn(true);
+      setUser(JSON.parse(userStr));
+    }
+  }, []);
+
+  const handleLogout = () => {
+    // Clear authentication data
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setUser(null);
+    router.push('/');
+  };
+
+  // Modify handleLogout to show modal first
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  // Final logout function
+  const confirmLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    setIsLoggedIn(false);
+    setUser(null);
+    setShowLogoutModal(false);
+    router.push('/');
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white font-[family-name:var(--font-geist-sans)]">
       {/* Hero Section with Background */}
@@ -117,17 +157,54 @@ export default function Home() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/login" className="text-gray-400 hover:text-white transition-colors">
-                    Login
-                  </Link>
+                  {isLoggedIn ? (
+                    <button
+                      onClick={handleLogoutClick}
+                      className="text-gray-400 hover:text-white transition-colors"
+                    >
+                      Logout
+                    </button>
+                  ) : (
+                    <Link href="/login" className="text-gray-400 hover:text-white transition-colors">
+                      Login
+                    </Link>
+                  )}
                 </li>
-                <li>
-                  <Link href="/admin" className="text-gray-400 hover:text-white transition-colors">
-                    Admin Dashboard
-                  </Link>
-                </li>
+                {user?.isAdmin && (
+                  <li>
+                    <Link href="/admin" className="text-gray-400 hover:text-white transition-colors">
+                      Admin Dashboard
+                    </Link>
+                  </li>
+                )}
               </ul>
             </div>
+
+            {/* Logout Confirmation Modal */}
+            {showLogoutModal && (
+                  <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+                    <div className="bg-gray-800 rounded-lg p-6 max-w-sm w-full mx-4">
+                      <h2 className="text-xl font-bold mb-4">Confirm Logout</h2>
+                      <p className="text-gray-300 mb-6">
+                        Are you sure you want to log out?
+                      </p>
+                      <div className="flex justify-end space-x-4">
+                        <button
+                          onClick={() => setShowLogoutModal(false)}
+                          className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={confirmLogout}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                        >
+                          Logout
+                        </button>
+                      </div>
+                  </div>
+              </div>
+            )}
 
             {/* Contact Info */}
             <div>
