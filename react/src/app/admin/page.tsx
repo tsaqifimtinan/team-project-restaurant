@@ -70,6 +70,8 @@ function MenuManager() {
     });
     const [isEditing, setIsEditing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [filePreview, setFilePreview] = useState<string>('');
 
     // Add useEffect to fetch menu items when component mounts
     useEffect(() => {
@@ -79,7 +81,7 @@ function MenuManager() {
     // Function to fetch menu items
     const fetchMenuItems = async () => {
         try {
-            const response = await fetch('/api/menu');
+            const response = await fetch('http://localhost:3001/api/menu');
             if (response.ok) {
                 const data = await response.json();
                 setItems(data);
@@ -91,39 +93,59 @@ function MenuManager() {
         }
     };
 
-    // Modified handleSubmit to refresh items after submission
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const response = await fetch('/api/menu', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData),
-            });
-          
-            if (response.ok) {
-                // Reset form and refresh menu items
-                setFormData({
-                    name: '',
-                    price: '',
-                    description: '',
-                    category: '',
-                    image: ''
-                });
-                // Fetch updated list
-                fetchMenuItems();
-            }
-        } catch (error) {
-            console.error('Error adding menu item:', error);
-        }
-    };
+    // Add file change handler
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+          setSelectedFile(file);
+          // Create preview URL
+          const reader = new FileReader();
+          reader.onloadend = () => {
+              setFilePreview(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+      }
+  };
+
+  // Modify handleSubmit to include file upload
+  const handleSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+          const formDataToSend = new FormData();
+          formDataToSend.append('name', formData.name);
+          formDataToSend.append('price', formData.price);
+          formDataToSend.append('description', formData.description);
+          formDataToSend.append('category', formData.category);
+          if (selectedFile) {
+              formDataToSend.append('image', selectedFile);
+          }
+
+          const response = await fetch('http://localhost:3001/api/menu', {
+              method: 'POST',
+              body: formDataToSend
+          });
+        
+          if (response.ok) {
+              setFormData({
+                  name: '',
+                  price: '',
+                  description: '',
+                  category: '',
+                  image: ''
+              });
+              setSelectedFile(null);
+              setFilePreview('');
+              fetchMenuItems();
+          }
+      } catch (error) {
+          console.error('Error adding menu item:', error);
+      }
+  };
 
     // Add delete handler
     const handleDelete = async (id: number) => {
         try {
-            const response = await fetch(`/api/menu/${id}`, {
+            const response = await fetch(`http://localhost:3001/api/menu/${id}`, {
                 method: 'DELETE'
             });
 
@@ -151,7 +173,6 @@ function MenuManager() {
       <div className="space-y-8">
         <h2 className="text-2xl font-bold">Menu Management</h2>
         
-        {/* Improved Form */}
         <div className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -159,8 +180,12 @@ function MenuManager() {
                 <label className="text-sm text-gray-400">Item Name</label>
                 <input
                   type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
                   placeholder="Item Name"
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  required
                 />
               </div>
               
@@ -168,51 +193,64 @@ function MenuManager() {
                 <label className="text-sm text-gray-400">Price</label>
                 <input
                   type="number"
+                  name="price"
                   step="0.01"
                   min="0"
+                  value={formData.price}
+                  onChange={(e) => setFormData({...formData, price: e.target.value})}
                   placeholder="Price"
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  required
                 />
               </div>
-  
+        
               <div className="space-y-2">
                 <label className="text-sm text-gray-400">Category</label>
                 <input
                   type="text"
+                  name="category"
+                  value={formData.category}
+                  onChange={(e) => setFormData({...formData, category: e.target.value})}
                   placeholder="Category"
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  required
                 />
               </div>
-  
+        
               <div className="space-y-2">
                 <label className="text-sm text-gray-400">Image</label>
                 <div className="relative">
                   <input
                     type="file"
-                    className="hidden"
                     id="menu-image"
                     accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
                   />
                   <label
                     htmlFor="menu-image"
                     className="flex items-center gap-2 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
                   >
                     <FiUpload className="w-5 h-5" />
-                    <span>Upload Image</span>
+                    <span>{selectedFile ? selectedFile.name : 'Upload Image'}</span>
                   </label>
                 </div>
               </div>
-  
+        
               <div className="space-y-2 col-span-full">
                 <label className="text-sm text-gray-400">Description</label>
                 <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
                   rows={4}
                   placeholder="Description"
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                  required
                 />
               </div>
             </div>
-  
+        
             <button
               type="submit"
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"

@@ -21,10 +21,10 @@ model User {
 model MenuItem {
   id          Int      @id @default(autoincrement())
   name        String
-  price       Decimal  @db.Decimal(10,2)
-  description String   @db.Text
+  price       Float
+  description String
   category    String
-  image       String?  
+  image       String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

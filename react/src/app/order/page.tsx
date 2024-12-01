@@ -1,76 +1,21 @@
 "use client";
 import Image from "next/image";
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MenuItem from '../components/MenuItem';
 
-const menuItems = [
-  {
-    id: 1,
-    name: "Signature Coffee",
-    description: "Our house blend coffee, perfectly roasted and brewed",
-    price: 4.50,
-    image: "/coffee.jpg"
-  },
-  {
-    id: 2,
-    name: "Artisan Croissant",
-    description: "Freshly baked butter croissant with a flaky, golden crust",
-    price: 3.50,
-    image: "/croissant.jpg"
-  },
-  {
-    id: 3,
-    name: "Avocado Toast",
-    description: "Sourdough bread topped with fresh avocado, cherry tomatoes, and microgreens",
-    price: 12.00,
-    image: "/avocado-toast.jpg"
-  },
-  {
-    id: 4,
-    name: "Matcha Latte",
-    description: "Premium grade matcha green tea with steamed milk and a touch of honey",
-    price: 5.50,
-    image: "/matcha.jpg"
-  },
-  {
-    id: 5,
-    name: "Eggs Benedict",
-    description: "Poached eggs on English muffin with hollandaise sauce and smoked ham",
-    price: 14.50,
-    image: "/eggs-benedict.jpg"
-  },
-  {
-    id: 6,
-    name: "Quinoa Bowl",
-    description: "Mixed grains with roasted vegetables, chickpeas, and tahini dressing",
-    price: 13.50,
-    image: "/quinoa-bowl.jpg"
-  },
-  {
-    id: 7,
-    name: "Berry Pancakes",
-    description: "Fluffy buttermilk pancakes with fresh berries and maple syrup",
-    price: 11.00,
-    image: "/pancakes.jpg"
-  },
-  {
-    id: 8,
-    name: "Iced Chai Latte",
-    description: "Spiced black tea blend with milk over ice and honey drizzle",
-    price: 5.00,
-    image: "/chai-latte.jpg"
-  },
-  {
-    id: 9,
-    name: "Classic Club Sandwich",
-    description: "Triple-decker with turkey, bacon, lettuce, tomato, and mayo",
-    price: 13.50,
-    image: "/club-sandwich.jpg"
-  }
-];
+interface MenuItem {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+}
 
 export default function OrderPage() {
+
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [cart, setCart] = useState<{
     id: number;
     name: string;
@@ -78,7 +23,25 @@ export default function OrderPage() {
     quantity: number;
   }[]>([]);
 
-  const addToCart = (item: typeof menuItems[0]) => {
+  useEffect(() => {
+    fetchMenuItems();
+  }, []);
+
+  const fetchMenuItems = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/menu');
+      if (response.ok) {
+        const data = await response.json();
+        setMenuItems(data);
+      }
+    } catch (error) {
+      console.error('Error fetching menu items:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const addToCart = (item: MenuItem) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
       if (existingItem) {
@@ -120,16 +83,26 @@ export default function OrderPage() {
           </Link>
         </div>
         
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-          {menuItems.map((item) => (
-            <MenuItem 
-              key={item.id} 
-              {...item} 
-              onAddToCart={() => addToCart(item)}
-              quantity={cart.find(cartItem => cartItem.id === item.id)?.quantity || 0}
-            />
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400">Loading menu items...</p>
+          </div>
+        ) : menuItems.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-400">No menu items available.</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
+            {menuItems.map((item) => (
+              <MenuItem 
+                key={item.id} 
+                {...item} 
+                onAddToCart={() => addToCart(item)}
+                quantity={cart.find(cartItem => cartItem.id === item.id)?.quantity || 0}
+              />
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );

@@ -2,7 +2,7 @@
 "use client";
 import Image from "next/image";
 
-type MenuItemProps = {
+interface MenuItemProps {
   id: number;
   name: string;
   description: string;
@@ -10,7 +10,7 @@ type MenuItemProps = {
   image: string;
   onAddToCart: () => void;
   quantity: number;
-};
+}
 
 export default function MenuItem({ 
   name, 
@@ -24,10 +24,11 @@ export default function MenuItem({
     <div className="bg-gray-800 rounded-lg overflow-hidden shadow-lg">
       <div className="relative h-48 w-full">
         <Image
-          src={image}
+          src={image.startsWith('/') ? image : `next/public/uploads/${image}`} // Handle both absolute and relative paths
           alt={name}
           fill
           className="object-cover"
+          priority
         />
       </div>
       <div className="p-6">
