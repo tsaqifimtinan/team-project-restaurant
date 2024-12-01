@@ -1,8 +1,10 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function ReservationPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -13,15 +15,68 @@ export default function ReservationPage() {
     specialRequests: ''
   });
 
-  const availableTimeSlots = [
-    "10:00", "10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30",
-    "17:00", "17:30", "18:00", "18:30", "19:00", "19:30", "20:00", "20:30", "21:00", "21:30",
-  ];
+  const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Fetch available time slots when date changes
+  useEffect(() => {
+    if (formData.date) {
+      fetchAvailableTimeSlots(formData.date);
+    }
+  }, [formData.date]);
+
+  const fetchAvailableTimeSlots = async (date: string) => {
+    try {
+      setIsLoading(true); // Add loading state
+      const response = await fetch(`http://localhost:3001/api/reservations/available-times?date=${date}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.availableSlots) {
+          // Sort the time slots
+          const sortedSlots = data.availableSlots.sort((a: string, b: string) => {
+            return a.localeCompare(b);
+          });
+          setAvailableTimeSlots(sortedSlots);
+        }
+      } else {
+        console.error('Failed to fetch time slots');
+        setAvailableTimeSlots([]); // Set empty array on error
+      }
+    } catch (error) {
+      console.error('Error fetching available times:', error);
+      setAvailableTimeSlots([]); // Set empty array on error
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Reservation details:', formData);
-    // Add your reservation logic here
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('http://localhost:3001/api/reservations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (response.ok) {
+        localStorage.setItem('lastReservation', JSON.stringify(formData));
+        // Redirect to confirmation page or show success message
+        router.push('/reservation-confirmation');
+      } else {
+        const error = await response.json();
+        alert(error.message || 'Failed to make reservation');
+      }
+    } catch (error) {
+      console.error('Error making reservation:', error);
+      alert('Failed to make reservation');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -115,13 +170,27 @@ export default function ReservationPage() {
                   className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={formData.time}
                   onChange={handleChange}
+                  disabled={isLoading || !formData.date} // Disable if loading or no date selected
+                  style={{ height: '44px' }} // Match date input height
                 >
-                  <option value="">Select a time</option>
+                  <option value="">
+                    {!formData.date 
+                      ? 'Please select a date first'
+                      : isLoading 
+                        ? 'Loading times...' 
+                        : 'Select a time'
+                    }
+                  </option>
                   {availableTimeSlots.map((slot) => (
                     <option key={slot} value={slot}>
                       {slot}
                     </option>
                   ))}
+                  {!isLoading && availableTimeSlots.length === 0 && formData.date && (
+                    <option value="" disabled>
+                      No available times for selected date
+                    </option>
+                  )}
                 </select>
               </div>
             </div>

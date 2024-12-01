@@ -2,6 +2,7 @@
 "use client";
 import { useCart } from '../context/CartContext';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation'; // Add this import
 import Image from 'next/image';
 import Link from 'next/link';
 import { FiMinus, FiPlus, FiX } from 'react-icons/fi';
@@ -16,6 +17,7 @@ interface CartItem {
 }
 
 export default function CartPage() {
+  const router = useRouter(); // Add this line
   const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
@@ -44,7 +46,7 @@ export default function CartPage() {
       if (response.ok) {
         clearCart();
         setShowCheckoutModal(false);
-        router.push('/order-confirmation'); // Optional: redirect to confirmation page
+        router.push('/order-confirmation');
       }
     } catch (error) {
       console.error('Error processing transaction:', error);
