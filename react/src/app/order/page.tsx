@@ -1,4 +1,5 @@
 "use client";
+import { useCart } from '../context/CartContext';
 import Image from "next/image";
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -13,15 +14,9 @@ interface MenuItem {
 }
 
 export default function OrderPage() {
-
+  const { cart, addToCart } = useCart();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [cart, setCart] = useState<{
-    id: number;
-    name: string;
-    price: number;
-    quantity: number;
-  }[]>([]);
 
   useEffect(() => {
     fetchMenuItems();
@@ -47,20 +42,6 @@ export default function OrderPage() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const addToCart = (item: MenuItem) => {
-    setCart(prevCart => {
-      const existingItem = prevCart.find(cartItem => cartItem.id === item.id);
-      if (existingItem) {
-        return prevCart.map(cartItem =>
-          cartItem.id === item.id
-            ? { ...cartItem, quantity: cartItem.quantity + 1 }
-            : cartItem
-        );
-      }
-      return [...prevCart, { ...item, quantity: 1 }];
-    });
   };
 
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
