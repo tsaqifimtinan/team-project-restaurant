@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import prisma from '@/lib/prisma';
 
 import { FiUpload, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
@@ -72,6 +71,9 @@ function MenuManager() {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [filePreview, setFilePreview] = useState<string>('');
+    const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
+    const [editFormData, setEditFormData] = useState<Partial<MenuItem>>({});
+    const [showEditModal, setShowEditModal] = useState(false);
 
     // Add useEffect to fetch menu items when component mounts
     useEffect(() => {
@@ -158,15 +160,54 @@ function MenuManager() {
     };
 
     // Add edit handler
-    const handleEdit = async (item: MenuItem) => {
-        setFormData({
-            name: item.name,
-            price: item.price.toString(),
-            description: item.description,
-            category: item.category,
-            image: item.image || ''
+    const handleEdit = (item: MenuItem) => {
+      setEditingItem(item);
+      setEditFormData({}); // Start with empty changes
+      setShowEditModal(true);
+    };
+  
+    const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setEditFormData({
+        ...editFormData,
+        [e.target.name]: e.target.value
+      });
+    };
+  
+    const handleEditSubmit = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!editingItem) return;
+    
+      try {
+        const formDataToSend = new FormData();
+        // Only append changed fields
+        Object.keys(editFormData).forEach(key => {
+          if (editFormData[key] !== undefined) {
+            formDataToSend.append(key, editFormData[key]!.toString());
+          }
         });
-        setIsEditing(true);
+    
+        const response = await fetch(`http://localhost:3001/api/menu/${editingItem.id}`, {
+          method: 'PUT',
+          // Do not set Content-Type header when sending FormData
+          body: formDataToSend
+        });
+    
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+    
+        const result = await response.json();
+        if (result.error) {
+          throw new Error(result.error);
+        }
+    
+        setShowEditModal(false);
+        setEditingItem(null);
+        setEditFormData({});
+        fetchMenuItems();
+      } catch (error) {
+        console.error('Error updating menu item:', error);
+      }
     };
   
     return (
@@ -306,6 +347,88 @@ function MenuManager() {
                     )}
                 </div>
             </div>
+
+            {showEditModal && editingItem && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-2xl mx-4">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-semibold">Edit Menu Item</h3>
+                    <button 
+                      onClick={() => setShowEditModal(false)}
+                      className="text-gray-400 hover:text-white"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleEditSubmit} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-sm text-gray-400">Item Name</label>
+                        <input
+                          type="text"
+                          name="name"
+                          defaultValue={editingItem.name}
+                          onChange={handleEditChange}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm text-gray-400">Price</label>
+                        <input
+                          type="number"
+                          name="price"
+                          step="0.01"
+                          min="0"
+                          defaultValue={editingItem.price}
+                          onChange={handleEditChange}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm text-gray-400">Category</label>
+                        <input
+                          type="text"
+                          name="category"
+                          defaultValue={editingItem.category}
+                          onChange={handleEditChange}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm text-gray-400">Description</label>
+                        <textarea
+                          name="description"
+                          defaultValue={editingItem.description}
+                          onChange={handleEditChange}
+                          rows={4}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-4 mt-6">
+                      <button
+                        type="button"
+                        onClick={() => setShowEditModal(false)}
+                        className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Save Changes
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
       </div>
     );
 }
