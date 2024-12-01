@@ -44,9 +44,18 @@ export default function CartPage() {
       });
   
       if (response.ok) {
+        localStorage.setItem('lastOrder', JSON.stringify({
+          name: paymentData.name,
+          email: paymentData.email,
+          items: cart,
+          subtotal,
+          tax,
+          total,
+          paymentMethod: paymentData.paymentMethod
+        }));
+        router.push('/order-confirmation');
         clearCart();
         setShowCheckoutModal(false);
-        router.push('/order-confirmation');
       }
     } catch (error) {
       console.error('Error processing transaction:', error);
