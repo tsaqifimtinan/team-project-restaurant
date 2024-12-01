@@ -56,3 +56,19 @@ model Reservation {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+// Transaction Model
+model Transaction {
+  id          Int      @id @default(autoincrement())
+  orderNumber String   @unique
+  items       Json     // Store cart items as JSON
+  subtotal    Float
+  tax         Float
+  total       Float
+  status      String   @default("pending") // pending, completed, cancelled
+  paymentMethod String
+  customerName String?
+  customerEmail String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

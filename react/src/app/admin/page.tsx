@@ -15,7 +15,7 @@ interface MenuItem {
     image?: string;
   }
 
-type TabType = 'menu' | 'events' | 'promotions';
+type TabType = 'menu' | 'events' | 'promotions' | 'transactions';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('menu');
@@ -52,6 +52,7 @@ export default function AdminDashboard() {
         {activeTab === 'menu' && <MenuManager />}
         {activeTab === 'events' && <EventManager />}
         {activeTab === 'promotions' && <PromotionManager />}
+        {activeTab === 'transactions' && <TransactionManager />}
       </div>
     </div>
   );
@@ -738,6 +739,72 @@ function PromotionManager() {
                       <button className="text-red-400 hover:text-red-300">Delete</button>
                     </div>
                   </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TransactionManager() {
+  const [transactions, setTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  const fetchTransactions = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/transactions');
+      if (response.ok) {
+        const data = await response.json();
+        setTransactions(data);
+      }
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <h2 className="text-2xl font-bold">Transaction History</h2>
+
+      <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Order #</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Customer</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Total</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Payment</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Date</th>
+              </tr>
+            </thead>
+            <tbody className="bg-gray-800 divide-y divide-gray-700">
+              {transactions.map((transaction) => (
+                <tr key={transaction.id}>
+                  <td className="px-6 py-4 whitespace-nowrap">{transaction.orderNumber}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{transaction.customerName}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">${transaction.total.toFixed(2)}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      transaction.status === 'completed' ? 'bg-green-500/20 text-green-400' :
+                      transaction.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-red-500/20 text-red-400'
+                    }`}>
+                      {transaction.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">{transaction.paymentMethod}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{new Date(transaction.createdAt).toLocaleDateString()}</td>
                 </tr>
               ))}
             </tbody>

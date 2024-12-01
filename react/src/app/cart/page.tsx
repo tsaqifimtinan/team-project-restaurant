@@ -5,6 +5,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FiMinus, FiPlus, FiX } from 'react-icons/fi';
+import CheckoutModal from '../components/CheckoutModal';
 
 interface CartItem {
   id: number;
@@ -15,12 +16,33 @@ interface CartItem {
 }
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQuantity } = useCart();
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const tax = subtotal * 0.1; // 10% tax
+  const tax = subtotal * 0.1;
   const total = subtotal + tax;
+
+  const handleCheckout = async (paymentData: any) => {
+    try {
+      const response = await fetch('http://localhost:3001/api/transactions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paymentData),
+      });
+
+      if (response.ok) {
+        clearCart();
+        setShowCheckoutModal(false);
+        // Add success notification here
+      }
+    } catch (error) {
+      console.error('Error processing transaction:', error);
+      // Add error notification here
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white py-12">
@@ -100,7 +122,10 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+              <button 
+                onClick={() => setShowCheckoutModal(true)}
+                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              >
                 Proceed to Checkout
               </button>
 
@@ -110,6 +135,16 @@ export default function CartPage() {
               >
                 Continue Shopping
               </Link>
+
+              <CheckoutModal
+                isOpen={showCheckoutModal}
+                onClose={() => setShowCheckoutModal(false)}
+                cart={cart}
+                subtotal={subtotal}
+                tax={tax}
+                total={total}
+                onCheckout={handleCheckout}
+              />
             </div>
           </div>
         )}
