@@ -25,22 +25,29 @@ export default function CartPage() {
 
   const handleCheckout = async (paymentData: any) => {
     try {
+      const transactionData = {
+        ...paymentData,
+        cart: cart,
+        subtotal,
+        tax,
+        total
+      };
+  
       const response = await fetch('http://localhost:3001/api/transactions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(paymentData),
+        body: JSON.stringify(transactionData),
       });
-
+  
       if (response.ok) {
         clearCart();
         setShowCheckoutModal(false);
-        // Add success notification here
+        router.push('/order-confirmation'); // Optional: redirect to confirmation page
       }
     } catch (error) {
       console.error('Error processing transaction:', error);
-      // Add error notification here
     }
   };
 

@@ -31,7 +31,7 @@ export default function AdminDashboard() {
         </div>
         <nav>
           <ul className="space-y-2">
-            {(['menu', 'events', 'promotions'] as TabType[]).map((tab) => (
+            {(['menu', 'events', 'promotions', 'transactions'] as TabType[]).map((tab) => (
               <li key={tab}>
                 <button
                   onClick={() => setActiveTab(tab)}
