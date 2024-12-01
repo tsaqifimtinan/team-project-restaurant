@@ -223,9 +223,9 @@ export default function Home() {
             <div>
               <h3 className="text-xl font-semibold mb-4">Contact Us</h3>
               <address className="text-gray-400 not-italic">
-                <p>123 Coffee Street</p>
-                <p>Jakarta, Indonesia</p>
-                <p className="mt-2">Phone: (123) 456-7890</p>
+                <p>서울 용산구 소월로40길 85 1, 2층</p>
+                <p>Itaewon-dong, Yongsan District, Seoul, South Korea</p>
+                <p className="mt-2">Phone: 0507-1360-4302</p>
                 <p>Email: hello@rainreport.com</p>
               </address>
               <div className="flex gap-4 mt-4">

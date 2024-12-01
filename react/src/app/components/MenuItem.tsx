@@ -23,12 +23,14 @@ export default function MenuItem({
   return (
     <div className="bg-gray-800 rounded-lg overflow-hidden shadow-lg">
       <div className="relative h-48 w-full">
-        <Image
-          src={image.startsWith('/') ? image : `next/public/uploads/${image}`} // Handle both absolute and relative paths
+      <Image
+          src={image}
           alt={name}
           fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover"
-          priority
+          // Add this if your images are from an external domain
+          unoptimized={true}
         />
       </div>
       <div className="p-6">

@@ -32,7 +32,15 @@ export default function OrderPage() {
       const response = await fetch('http://localhost:3001/api/menu');
       if (response.ok) {
         const data = await response.json();
-        setMenuItems(data);
+        // Format image URLs properly
+        const formattedData = data.map(item => ({
+          ...item,
+          // If the image URL is not absolute, prepend the API base URL
+          image: item.image.startsWith('http') 
+            ? item.image 
+            : `http://localhost:3001${item.image.startsWith('/') ? '' : '/'}${item.image}`
+        }));
+        setMenuItems(formattedData);
       }
     } catch (error) {
       console.error('Error fetching menu items:', error);
