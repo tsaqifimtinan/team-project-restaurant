@@ -1,8 +1,8 @@
 // src/app/cart/page.tsx
 "use client";
 import { useCart } from '../context/CartContext';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation'; // Add this import
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { FiMinus, FiPlus, FiX } from 'react-icons/fi';
@@ -17,9 +17,18 @@ interface CartItem {
 }
 
 export default function CartPage() {
-  const router = useRouter(); // Add this line
+  const router = useRouter();
   const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  // Get logged in user data
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
+  }, []);
 
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const tax = subtotal * 0.1;
@@ -34,7 +43,7 @@ export default function CartPage() {
         tax,
         total
       };
-  
+
       const response = await fetch('http://localhost:3001/api/transactions', {
         method: 'POST',
         headers: {
@@ -42,7 +51,7 @@ export default function CartPage() {
         },
         body: JSON.stringify(transactionData),
       });
-  
+
       if (response.ok) {
         localStorage.setItem('lastOrder', JSON.stringify({
           name: paymentData.name,
@@ -162,6 +171,7 @@ export default function CartPage() {
                 tax={tax}
                 total={total}
                 onCheckout={handleCheckout}
+                user={user} // Pass user data to modal
               />
             </div>
           </div>

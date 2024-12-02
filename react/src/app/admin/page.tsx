@@ -15,7 +15,7 @@ interface MenuItem {
     image?: string;
   }
 
-type TabType = 'menu' | 'events' | 'promotions' | 'transactions';
+  type TabType = 'menu' | 'events' | 'promotions' | 'transactions' | 'reservations';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('menu');
@@ -31,7 +31,7 @@ export default function AdminDashboard() {
         </div>
         <nav>
           <ul className="space-y-2">
-            {(['menu', 'events', 'promotions', 'transactions'] as TabType[]).map((tab) => (
+            {(['menu', 'events', 'promotions', 'transactions', 'reservations'] as TabType[]).map((tab) => (
               <li key={tab}>
                 <button
                   onClick={() => setActiveTab(tab)}
@@ -53,6 +53,7 @@ export default function AdminDashboard() {
         {activeTab === 'events' && <EventManager />}
         {activeTab === 'promotions' && <PromotionManager />}
         {activeTab === 'transactions' && <TransactionManager />}
+        {activeTab === 'reservations' && <ReservationManager />}
       </div>
     </div>
   );
@@ -805,6 +806,102 @@ function TransactionManager() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">{transaction.paymentMethod}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{new Date(transaction.createdAt).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReservationManager() {
+  const [reservations, setReservations] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    fetchReservations();
+  }, []);
+
+  const fetchReservations = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/reservations');
+      if (response.ok) {
+        const data = await response.json();
+        setReservations(data);
+      }
+    } catch (error) {
+      console.error('Error fetching reservations:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (id: number, status: string) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/reservations/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      if (response.ok) {
+        fetchReservations();
+      }
+    } catch (error) {
+      console.error('Error updating reservation:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-8">
+      <h2 className="text-2xl font-bold">Reservation Management</h2>
+
+      <div className="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-700">
+            <thead className="bg-gray-700">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Time</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Guests</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-gray-800 divide-y divide-gray-700">
+              {reservations.map((reservation) => (
+                <tr key={reservation.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{reservation.name}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    {new Date(reservation.date).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{reservation.time}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">{reservation.guests}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      reservation.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
+                      reservation.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-red-500/20 text-red-400'
+                    }`}>
+                      {reservation.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <select 
+                      value={reservation.status}
+                      onChange={(e) => handleStatusChange(reservation.id, e.target.value)}
+                      className="bg-gray-700 border border-gray-600 rounded px-2 py-1"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="confirmed">Confirm</option>
+                      <option value="cancelled">Cancel</option>
+                    </select>
+                  </td>
                 </tr>
               ))}
             </tbody>

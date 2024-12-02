@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CartItem } from '../context/CartContext';
 
 interface CheckoutModalProps {
@@ -9,6 +9,7 @@ interface CheckoutModalProps {
   tax: number;
   total: number;
   onCheckout: (paymentData: any) => void;
+  user: { name: string; email: string } | null;
 }
 
 export default function CheckoutModal({ 
@@ -18,13 +19,23 @@ export default function CheckoutModal({
   subtotal, 
   tax, 
   total,
-  onCheckout 
+  onCheckout,
+  user
 }: CheckoutModalProps) {
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
   });
+
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        name: user.name || '',
+        email: user.email || ''
+      });
+    }
+  }, [user]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +70,10 @@ export default function CheckoutModal({
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  user ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={!!user}
               />
             </div>
 
@@ -70,7 +84,10 @@ export default function CheckoutModal({
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  user ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                disabled={!!user}
               />
             </div>
 
