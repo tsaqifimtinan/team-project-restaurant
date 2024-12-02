@@ -15,6 +15,26 @@ interface MenuItem {
     image?: string;
   }
 
+  interface Event {
+    id: number;
+    title: string;
+    description: string;
+    date: string;
+    time: string;
+    image: string;
+    capacity: number;
+    rsvpCount: number;
+  }
+
+interface Promotion {
+  id: number;
+  title: string;
+  description: string;
+  validUntil: string;
+  discountAmount: string;
+  code: string;
+}
+
   type TabType = 'menu' | 'events' | 'promotions' | 'transactions' | 'reservations';
 
 export default function AdminDashboard() {
@@ -443,36 +463,154 @@ function EventManager() {
     description: '',
     date: '',
     time: '',
-    image: '',
     capacity: ''
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string>('');
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<Event | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<Event>>({});
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/events');
+      if (!response.ok) throw new Error('Failed to fetch events');
+      const data = await response.json();
+      setEvents(data);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFilePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const formDataToSend = new FormData();
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('date', new Date(formData.date).toISOString());
+      formDataToSend.append('time', formData.time);
+      formDataToSend.append('capacity', formData.capacity);
       
-      if (response.ok) {
+      if (selectedFile) {
+        formDataToSend.append('image', selectedFile);
+      }
+  
+      const response = await fetch('http://localhost:3001/api/events', {
+        method: 'POST',
+        body: formDataToSend,
+      });
+  
+      const data = await response.json();
+      
+      if (data.success) {
         setFormData({
           title: '',
           description: '',
           date: '',
           time: '',
-          image: '',
           capacity: ''
         });
-        // Refresh events list
+        setSelectedFile(null);
+        setFilePreview('');
+        await fetchEvents();
+      } else {
+        throw new Error(data.error || 'Failed to create event');
       }
     } catch (error) {
-      console.error('Error adding event:', error);
+      console.error('Error:', error);
+      alert(error.message);
     }
   };
+
+  const handleDelete = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/events/${id}`, {
+        method: 'DELETE'
+      });
+  
+      if (response.ok) {
+        await fetchEvents();
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error);
+    }
+  };
+  
+  const handleEdit = (event: Event) => {
+    setEditingItem(event);
+    setEditFormData({
+      title: event.title,
+      description: event.description,
+      date: event.date,
+      time: event.time,
+      capacity: event.capacity.toString()
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  setEditFormData({
+    ...editFormData,
+    [e.target.name]: e.target.value
+  });
+};
+
+const handleEditSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!editingItem) return;
+
+  try {
+    const formDataToSend = new FormData();
+    // Only append changed fields
+    Object.keys(editFormData).forEach(key => {
+      if (editFormData[key] !== undefined) {
+        formDataToSend.append(key, editFormData[key]!.toString());
+      }
+    });
+
+    if (selectedFile) {
+      formDataToSend.append('image', selectedFile);
+    }
+
+    const response = await fetch(`http://localhost:3001/api/events/${editingItem.id}`, {
+      method: 'PUT',
+      body: formDataToSend
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    setShowEditModal(false);
+    setEditingItem(null);
+    setEditFormData({});
+    await fetchEvents();
+  } catch (error) {
+    console.error('Error updating event:', error);
+  }
+};
 
   return (
     <div className="space-y-8">
@@ -493,7 +631,38 @@ function EventManager() {
                 required
               />
             </div>
-            
+
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Image</label>
+              <div className="relative">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="event-image"
+                />
+                <label
+                  htmlFor="event-image"
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors"
+                >
+                  <FiUpload className="w-5 h-5" />
+                  <span>{selectedFile ? selectedFile.name : 'Upload Image'}</span>
+                </label>
+                {filePreview && (
+                  <div className="mt-2">
+                    <img 
+                      src={filePreview}
+                      alt="Preview"
+                      width={100}
+                      height={100}
+                      className="rounded-lg object-cover"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm text-gray-400">Date</label>
               <input
@@ -526,6 +695,7 @@ function EventManager() {
                 value={formData.capacity}
                 onChange={(e) => setFormData({...formData, capacity: e.target.value})}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
               />
             </div>
 
@@ -538,17 +708,6 @@ function EventManager() {
                 rows={4}
                 className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 required
-              />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <label className="text-sm text-gray-400">Image URL</label>
-              <input
-                type="text"
-                name="image"
-                value={formData.image}
-                onChange={(e) => setFormData({...formData, image: e.target.value})}
-                className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -582,10 +741,20 @@ function EventManager() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{event.date}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{event.time}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{event.capacity}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                  <td className="px-6 py-4">
                     <div className="flex gap-3">
-                      <button className="text-blue-400 hover:text-blue-300">Edit</button>
-                      <button className="text-red-400 hover:text-red-300">Delete</button>
+                      <button 
+                        className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
+                        onClick={() => handleEdit(event)}
+                      >
+                        <FiEdit2 className="w-5 h-5" />
+                      </button>
+                      <button 
+                        className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-red-400 hover:text-red-300"
+                        onClick={() => handleDelete(event.id)}
+                      >
+                        <FiTrash2 className="w-5 h-5" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -594,6 +763,98 @@ function EventManager() {
           </table>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && editingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-2xl mx-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold">Edit Event</h3>
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400">Event Title</label>
+                  <input
+                    type="text"
+                    name="title"
+                    defaultValue={editingItem.title}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400">Date</label>
+                  <input
+                    type="date"
+                    name="date"
+                    defaultValue={editingItem.date}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400">Time</label>
+                  <input
+                    type="time"
+                    name="time"
+                    defaultValue={editingItem.time}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400">Capacity</label>
+                  <input
+                    type="number"
+                    name="capacity"
+                    defaultValue={editingItem.capacity}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-sm text-gray-400">Description</label>
+                  <textarea
+                    name="description"
+                    defaultValue={editingItem.description}
+                    onChange={handleEditChange}
+                    rows={4}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -608,32 +869,134 @@ function PromotionManager() {
     discountAmount: '',
     code: ''
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<Promotion | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<Promotion>>({});
+
+  useEffect(() => {
+    fetchPromotions();
+  }, []);
+
+  const fetchPromotions = async () => {
+    try {
+      const response = await fetch('http://localhost:3001/api/promotions');
+      if (response.ok) {
+        const data = await response.json();
+        setPromotions(data);
+      }
+    } catch (error) {
+      console.error('Error fetching promotions:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/promotions', {
+      const formDataToSend = new FormData();
+      formDataToSend.append('title', formData.title);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('validUntil', new Date(formData.validUntil).toISOString());
+      formDataToSend.append('discountAmount', formData.discountAmount);
+      formDataToSend.append('code', formData.code);
+  
+      const response = await fetch('http://localhost:3001/api/promotions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        body: formDataToSend,
       });
-      
-      if (response.ok) {
-        setFormData({
-          title: '',
-          description: '',
-          validUntil: '',
-          discountAmount: '',
-          code: ''
-        });
-        // Refresh promotions list
+  
+      const data = await response.json();
+        
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create promotion');
       }
+  
+      // Reset form data only if successful
+      setFormData({
+        title: '',
+        description: '',
+        validUntil: '',
+        discountAmount: '',
+        code: ''
+      });
+      await fetchPromotions();
+      
     } catch (error) {
-      console.error('Error adding promotion:', error);
+      console.error('Error:', error);
+      alert(error instanceof Error ? error.message : 'Failed to create promotion');
     }
   };
+
+  const handleDelete = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/promotions/${id}`, {
+        method: 'DELETE'
+      });
+  
+      if (response.ok) {
+        await fetchPromotions();
+      }
+    } catch (error) {
+      console.error('Error deleting promotion:', error);
+    }
+  };
+  
+  const handleEdit = (promotion: Promotion) => {
+    setEditingItem(promotion);
+    setEditFormData({
+      title: promotion.title,
+      description: promotion.description,
+      validUntil: promotion.validUntil,
+      discountAmount: promotion.discountAmount,
+      code: promotion.code
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  setEditFormData({
+    ...editFormData,
+    [e.target.name]: e.target.value
+  });
+};
+
+const handleEditSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!editingItem) return;
+
+  try {
+    const formDataToSend = new FormData();
+    // Only append changed fields
+    Object.keys(editFormData).forEach(key => {
+      if (editFormData[key] !== undefined) {
+        formDataToSend.append(key, editFormData[key]!.toString());
+      }
+    });
+
+    const response = await fetch(`http://localhost:3001/api/promotions/${editingItem.id}`, {
+      method: 'PUT',
+      body: formDataToSend
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.error) {
+      throw new Error(result.error);
+    }
+
+    setShowEditModal(false);
+    setEditingItem(null);
+    setEditFormData({});
+    await fetchPromotions();
+  } catch (error) {
+    console.error('Error updating promotion:', error);
+  }
+};
 
   return (
     <div className="space-y-8">
@@ -734,10 +1097,20 @@ function PromotionManager() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{promo.code}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{promo.discountAmount}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{promo.validUntil}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
+                  <td className="px-6 py-4">
                     <div className="flex gap-3">
-                      <button className="text-blue-400 hover:text-blue-300">Edit</button>
-                      <button className="text-red-400 hover:text-red-300">Delete</button>
+                      <button 
+                        className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
+                        onClick={() => handleEdit(promo)}
+                      >
+                        <FiEdit2 className="w-5 h-5" />
+                      </button>
+                      <button 
+                        className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-red-400 hover:text-red-300"
+                        onClick={() => handleDelete(promo.id)}
+                      >
+                        <FiTrash2 className="w-5 h-5" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -746,10 +1119,103 @@ function PromotionManager() {
           </table>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && editingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-2xl mx-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold">Edit Promotion</h3>
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400">Promotion Title</label>
+                  <input
+                    type="text"
+                    name="title"
+                    defaultValue={editingItem.title}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400">Valid Until</label>
+                  <input
+                    type="date"
+                    name="validUntil"
+                    defaultValue={editingItem.validUntil}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400">Discount Amount</label>
+                  <input
+                    type="text"
+                    name="discountAmount"
+                    defaultValue={editingItem.discountAmount}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400">Promo Code</label>
+                  <input
+                    type="text"
+                    name="code"
+                    defaultValue={editingItem.code}
+                    onChange={handleEditChange}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-sm text-gray-400">Description</label>
+                  <textarea
+                    name="description"
+                    defaultValue={editingItem.description}
+                    onChange={handleEditChange}
+                    rows={4}
+                    className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
+// Transaction Management Component
 function TransactionManager() {
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
