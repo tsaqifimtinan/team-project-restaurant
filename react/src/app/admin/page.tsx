@@ -465,8 +465,8 @@ function EventManager() {
     time: '',
     capacity: ''
   });
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingItem, setEditingItem] = useState<Event | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<Event>>({});
@@ -486,10 +486,11 @@ function EventManager() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
+      // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
         setFilePreview(reader.result as string);
@@ -498,7 +499,7 @@ function EventManager() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const formDataToSend = new FormData();
@@ -514,28 +515,25 @@ function EventManager() {
   
       const response = await fetch('http://localhost:3001/api/events', {
         method: 'POST',
-        body: formDataToSend,
+        body: formDataToSend // FormData will automatically set the correct Content-Type
       });
   
-      const data = await response.json();
-      
-      if (data.success) {
-        setFormData({
-          title: '',
-          description: '',
-          date: '',
-          time: '',
-          capacity: ''
-        });
-        setSelectedFile(null);
-        setFilePreview('');
-        await fetchEvents();
-      } else {
-        throw new Error(data.error || 'Failed to create event');
+      if (!response.ok) {
+        throw new Error('Failed to create event');
       }
+  
+      setFormData({
+        title: '',
+        description: '',
+        date: '',
+        time: '',
+        capacity: ''
+      });
+      setSelectedFile(null);
+      setFilePreview('');
+      await fetchEvents();
     } catch (error) {
       console.error('Error:', error);
-      alert(error.message);
     }
   };
 
@@ -566,51 +564,52 @@ function EventManager() {
   };
 
   const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-  setEditFormData({
-    ...editFormData,
-    [e.target.name]: e.target.value
-  });
-};
+    setEditFormData({
+      ...editFormData,
+      [e.target.name]: e.target.value
+    });
+  };
 
-const handleEditSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!editingItem) return;
-
-  try {
-    const formDataToSend = new FormData();
-    // Only append changed fields
-    Object.keys(editFormData).forEach(key => {
-      if (editFormData[key] !== undefined) {
-        formDataToSend.append(key, editFormData[key]!.toString());
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+  
+    try {
+      const formDataToSend = new FormData();
+      Object.keys(editFormData).forEach(key => {
+        if (editFormData[key] !== undefined) {
+          formDataToSend.append(key, editFormData[key]!.toString());
+        }
+      });
+  
+      if (selectedFile) {
+        formDataToSend.append('image', selectedFile);
       }
-    });
-
-    if (selectedFile) {
-      formDataToSend.append('image', selectedFile);
+  
+      const response = await fetch(`http://localhost:3001/api/events/${editingItem.id}`, {
+        method: 'PUT',
+        body: formDataToSend
+      });
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const result = await response.json();
+      if (result.error) {
+        throw new Error(result.error);
+      }
+  
+      setShowEditModal(false);
+      setEditingItem(null);
+      setEditFormData({});
+      setSelectedFile(null);
+      setFilePreview('');
+      await fetchEvents();
+    } catch (error) {
+      console.error('Error updating event:', error);
     }
-
-    const response = await fetch(`http://localhost:3001/api/events/${editingItem.id}`, {
-      method: 'PUT',
-      body: formDataToSend
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const result = await response.json();
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
-    setShowEditModal(false);
-    setEditingItem(null);
-    setEditFormData({});
-    await fetchEvents();
-  } catch (error) {
-    console.error('Error updating event:', error);
-  }
-};
+  };
 
   return (
     <div className="space-y-8">
@@ -637,10 +636,10 @@ const handleEditSubmit = async (e: React.FormEvent) => {
               <div className="relative">
                 <input
                   type="file"
+                  id="event-image"
                   accept="image/*"
                   onChange={handleFileChange}
                   className="hidden"
-                  id="event-image"
                 />
                 <label
                   htmlFor="event-image"
@@ -649,17 +648,6 @@ const handleEditSubmit = async (e: React.FormEvent) => {
                   <FiUpload className="w-5 h-5" />
                   <span>{selectedFile ? selectedFile.name : 'Upload Image'}</span>
                 </label>
-                {filePreview && (
-                  <div className="mt-2">
-                    <img 
-                      src={filePreview}
-                      alt="Preview"
-                      width={100}
-                      height={100}
-                      className="rounded-lg object-cover"
-                    />
-                  </div>
-                )}
               </div>
             </div>
 

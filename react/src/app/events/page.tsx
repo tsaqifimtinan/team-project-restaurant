@@ -30,18 +30,50 @@ export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showRSVPModal, setShowRSVPModal] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<number | null>(null);
+  const [rsvpForm, setRsvpForm] = useState({
+    name: '',
+    email: '',
+    guests: 1
+  });
+  // Add user state and effect
+const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     fetchEvents();
     fetchPromotions();
-  }, []);
+    // Get logged in user data from localStorage
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      setUser(JSON.parse(userStr));
+    }
+
+    if (user) {
+      setRsvpForm({
+        ...rsvpForm,
+        name: user.name || '',
+        email: user.email || ''
+      });
+    }
+  }, [user]);
 
   const fetchEvents = async () => {
     try {
       const response = await fetch('http://localhost:3001/api/events');
       if (!response.ok) throw new Error('Failed to fetch events');
       const data = await response.json();
-      setEvents(data);
+      const formattedData = data.map((event: Event) => ({
+        ...event,
+        image: event.image.startsWith('http') 
+            ? event.image 
+            : `http://localhost:3001${event.image.startsWith('/') ? '' : '/'}${event.image}`
+      }));
+      const eventsWithRSVPs = data.map((event: any) => ({
+        ...event,
+        rsvpCount: event.rsvps?.reduce((sum: number, rsvp: any) => sum + rsvp.guests, 0) || 0
+      }));
+      setEvents(formattedData);
     } catch (error) {
       console.error('Error fetching events:', error);
     }
@@ -61,18 +93,32 @@ export default function EventsPage() {
   };
 
   const handleRSVP = async (eventId: number) => {
+    setSelectedEventId(eventId);
+    setShowRSVPModal(true);
+  };
+
+  const handleRSVPSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
     try {
-      const response = await fetch(`/api/events/${eventId}/rsvp`, {
-        method: 'POST'
+      const response = await fetch(`http://localhost:3001/api/events/${selectedEventId}/rsvp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(rsvpForm)
       });
-
-      if (!response.ok) throw new Error('Failed to RSVP');
-
-      // Refresh events to update RSVP count
-      await fetchEvents();
+  
+      if (!response.ok) {
+        throw new Error('Failed to submit RSVP');
+      }
+  
+      setShowRSVPModal(false);
+      setRsvpForm({ name: '', email: '', guests: 1 });
+      await fetchEvents(); // Refresh events to update RSVP count
     } catch (error) {
-      console.error('Error RSVPing:', error);
-      alert('Failed to RSVP for this event');
+      console.error('Error submitting RSVP:', error);
+      alert('Failed to submit RSVP');
     }
   };
 
@@ -118,10 +164,13 @@ export default function EventsPage() {
                 {event.image && (
                   <div className="relative h-48">
                     <Image
-                      src={event.image}
+                      src={event.image.startsWith('http') ? event.image : `/uploads/${event.image}`}
                       alt={event.title}
                       fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       className="object-cover"
+                      // Add this if your images are from an external domain
+                      unoptimized={true}
                     />
                   </div>
                 )}
@@ -143,6 +192,74 @@ export default function EventsPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {showRSVPModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-md mx-4">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-semibold">RSVP for Event</h3>
+                <button 
+                  onClick={() => setShowRSVPModal(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={handleRSVPSubmit} className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={rsvpForm.name}
+                      onChange={(e) => setRsvpForm({...rsvpForm, name: e.target.value})}
+                      className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        user ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      disabled={!!user}
+                    />
+                  </div>
+              
+                  <div>
+                    <label className="text-sm text-gray-400">Email</label>
+                    <input
+                      type="email"
+                      required
+                      value={rsvpForm.email}
+                      onChange={(e) => setRsvpForm({...rsvpForm, email: e.target.value})}
+                      className={`w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        user ? 'opacity-50 cursor-not-allowed' : ''
+                      }`}
+                      disabled={!!user}
+                    />
+                  </div>
+              
+                  <div>
+                    <label className="text-sm text-gray-400">Number of Guests</label>
+                    <select
+                      value={rsvpForm.guests}
+                      onChange={(e) => setRsvpForm({...rsvpForm, guests: parseInt(e.target.value)})}
+                      className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      {[1, 2, 3, 4, 5].map(num => (
+                        <option key={num} value={num}>{num}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Submit RSVP
+                </button>
+              </form>
+            </div>
           </div>
         )}
 

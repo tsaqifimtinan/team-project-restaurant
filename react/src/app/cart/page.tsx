@@ -8,14 +8,6 @@ import Link from 'next/link';
 import { FiMinus, FiPlus, FiX } from 'react-icons/fi';
 import CheckoutModal from '../components/CheckoutModal';
 
-interface CartItem {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-}
-
 export default function CartPage() {
   const router = useRouter();
   const { cart, removeFromCart, updateQuantity, clearCart } = useCart();

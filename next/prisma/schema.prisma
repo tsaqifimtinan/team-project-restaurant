@@ -29,17 +29,30 @@ model MenuItem {
   updatedAt   DateTime @updatedAt
 }
 
-// Event Model
+// RSVP Model
+model EventRSVP {
+  id        Int      @id @default(autoincrement())
+  eventId   Int
+  event     Event    @relation(fields: [eventId], references: [id])
+  name      String
+  email     String
+  guests    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Update Event model to include RSVP relation
 model Event {
-  id          Int      @id @default(autoincrement())
+  id          Int        @id @default(autoincrement())
   title       String
-  description String   @db.Text
+  description String     @db.Text
   date        DateTime
   time        String
   image       String?
   capacity    Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  rsvps       EventRSVP[]
 }
 
 // Promotion Model
