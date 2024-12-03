@@ -1207,6 +1207,8 @@ const handleEditSubmit = async (e: React.FormEvent) => {
 function TransactionManager() {
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
 
   useEffect(() => {
     fetchTransactions();
@@ -1226,6 +1228,36 @@ function TransactionManager() {
     }
   };
 
+  const handleEdit = (transaction: any) => {
+    setEditingItem(transaction);
+    setShowEditModal(true);
+  };
+
+  const handleTransactionStatus = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/transactions/${editingItem.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: e.target['status'].value
+        }),
+      });
+
+      if (response.ok) {
+        setShowEditModal(false);
+        setEditingItem(null);
+        await fetchTransactions();
+      }
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold">Transaction History</h2>
@@ -1241,6 +1273,7 @@ function TransactionManager() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Payment</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-gray-800 divide-y divide-gray-700">
@@ -1260,12 +1293,70 @@ function TransactionManager() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">{transaction.paymentMethod}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{new Date(transaction.createdAt).toLocaleDateString()}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-3">
+                      <button 
+                        className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
+                        onClick={() => handleEdit(transaction)}
+                      >
+                        <FiEdit2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && editingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold">Update Transaction Status</h3>
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleTransactionStatus} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">Status</label>
+                <select
+                  name="status"
+                  defaultValue={editingItem.status}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1273,6 +1364,8 @@ function TransactionManager() {
 function ReservationManager() {
   const [reservations, setReservations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingItem, setEditingItem] = useState<any>(null);
 
   useEffect(() => {
     fetchReservations();
@@ -1304,6 +1397,36 @@ function ReservationManager() {
 
       if (response.ok) {
         fetchReservations();
+      }
+    } catch (error) {
+      console.error('Error updating reservation:', error);
+    }
+  };
+
+  const handleEdit = (reservation: any) => {
+    setEditingItem(reservation);
+    setShowEditModal(true);
+  };
+
+  const handleReservationStatus = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingItem) return;
+
+    try {
+      const response = await fetch(`http://localhost:3001/api/reservations/${editingItem.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: e.target['status'].value
+        }),
+      });
+
+      if (response.ok) {
+        setShowEditModal(false);
+        setEditingItem(null);
+        await fetchReservations();
       }
     } catch (error) {
       console.error('Error updating reservation:', error);
@@ -1345,16 +1468,15 @@ function ReservationManager() {
                       {reservation.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <select 
-                      value={reservation.status}
-                      onChange={(e) => handleStatusChange(reservation.id, e.target.value)}
-                      className="bg-gray-700 border border-gray-600 rounded px-2 py-1"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="confirmed">Confirm</option>
-                      <option value="cancelled">Cancel</option>
-                    </select>
+                  <td className="px-6 py-4">
+                    <div className="flex gap-3">
+                      <button 
+                        className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
+                        onClick={() => handleEdit(reservation)}
+                      >
+                        <FiEdit2 className="w-5 h-5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -1362,6 +1484,54 @@ function ReservationManager() {
           </table>
         </div>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && editingItem && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-xl shadow-lg w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold">Update Reservation Status</h3>
+              <button 
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleReservationStatus} className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">Status</label>
+                <select
+                  name="status"
+                  defaultValue={editingItem.status}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="pending">Pending</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-4">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
