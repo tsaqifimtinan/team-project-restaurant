@@ -4,6 +4,11 @@ import { writeFile } from 'fs/promises';
 import path from 'path';
 
 const prisma = new PrismaClient();
+const events = await prisma.event.findMany({
+  include: {
+    rsvps: true  // Include all RSVPs for each event
+  },
+});
 
 export async function GET() {
   try {

@@ -1259,6 +1259,19 @@ function TransactionManager() {
     }
   };
 
+  const handleDelete = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/transactions/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        await fetchTransactions();
+      }
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold">Transaction History</h2>
@@ -1295,14 +1308,20 @@ function TransactionManager() {
                   <td className="px-6 py-4 whitespace-nowrap">{transaction.paymentMethod}</td>
                   <td className="px-6 py-4 whitespace-nowrap">{new Date(transaction.createdAt).toLocaleDateString()}</td>
                   <td className="px-6 py-4">
-                    <div className="flex gap-3">
-                      <button 
-                        className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
-                        onClick={() => handleEdit(transaction)}
-                      >
-                        <FiEdit2 className="w-5 h-5" />
-                      </button>
-                    </div>
+                  <div className="flex gap-3">
+                    <button 
+                      className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
+                      onClick={() => handleEdit(transaction)}
+                    >
+                      <FiEdit2 className="w-5 h-5" />
+                    </button>
+                    <button 
+                      className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-red-400 hover:text-red-300"
+                      onClick={() => handleDelete(transaction.id)}
+                    >
+                      <FiTrash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                   </td>
                 </tr>
               ))}
@@ -1434,6 +1453,19 @@ function ReservationManager() {
     }
   };
 
+  const handleDelete = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/reservations/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        await fetchReservations();
+      }
+    } catch (error) {
+      console.error('Error deleting reservation:', error);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold">Reservation Management</h2>
@@ -1470,14 +1502,20 @@ function ReservationManager() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex gap-3">
-                      <button 
-                        className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
-                        onClick={() => handleEdit(reservation)}
-                      >
-                        <FiEdit2 className="w-5 h-5" />
-                      </button>
-                    </div>
+                  <div className="flex gap-3">
+                    <button 
+                      className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
+                      onClick={() => handleEdit(reservation)}
+                    >
+                      <FiEdit2 className="w-5 h-5" />
+                    </button>
+                    <button 
+                      className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-red-400 hover:text-red-300"
+                      onClick={() => handleDelete(reservation.id)}
+                    >
+                      <FiTrash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                   </td>
                 </tr>
               ))}
@@ -1609,6 +1647,28 @@ function EventRSVPManager() {
     }
   };
 
+  const handleDelete = async (id: number) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/events/rsvps/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors', // Pastikan mode cors diaktifkan
+      });
+  
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete RSVP');
+      }
+  
+      await fetchRSVPs(); // Refresh list RSVP setelah berhasil
+    } catch (error) {
+      console.error('Error deleting RSVP:', error);
+      alert('Failed to delete RSVP');
+    }
+  };
+
   return (
     <div className="space-y-8">
       <h2 className="text-2xl font-bold">Event RSVP Management</h2>
@@ -1643,14 +1703,20 @@ function EventRSVPManager() {
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex gap-3">
-                      <button 
-                        className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
-                        onClick={() => handleEdit(rsvp)}
-                      >
-                        <FiEdit2 className="w-5 h-5" />
-                      </button>
-                    </div>
+                  <div className="flex gap-3">
+                    <button 
+                      className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-blue-400 hover:text-blue-300"
+                      onClick={() => handleEdit(rsvp)}
+                    >
+                      <FiEdit2 className="w-5 h-5" />
+                    </button>
+                    <button 
+                      className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-red-400 hover:text-red-300"
+                      onClick={() => handleDelete(rsvp.id)}
+                    >
+                      <FiTrash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                   </td>
                 </tr>
               ))}

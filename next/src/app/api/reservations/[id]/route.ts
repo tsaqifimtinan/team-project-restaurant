@@ -41,3 +41,23 @@ export async function OPTIONS() {
     }
   });
 }
+
+export async function DELETE(
+    request: Request,
+    { params }: { params: { id: string } }
+) {
+    try {
+        await prisma.reservation.delete({
+            where: {
+                id: parseInt(params.id)
+            }
+        });
+        return NextResponse.json({ message: 'Reservation deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting reservation:', error);
+        return NextResponse.json(
+            { error: 'Error deleting reservation' },
+            { status: 500 }
+        );
+    }
+}

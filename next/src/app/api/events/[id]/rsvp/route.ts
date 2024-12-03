@@ -3,6 +3,18 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Add OPTIONS handler for CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
+  });
+}
+
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
@@ -49,6 +61,47 @@ export async function POST(
     return NextResponse.json(
       { error: 'Error creating RSVP' },
       { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const headers = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    };
+
+    const id = parseInt(params.id);
+    if (isNaN(id)) {
+      return NextResponse.json(
+        { error: 'Invalid ID provided' },
+        { status: 400, headers }
+      );
+    }
+
+    // Delete the RSVP
+    await prisma.eventRSVP.delete({
+      where: { id }
+    });
+
+    return NextResponse.json(
+      { message: 'RSVP deleted successfully' },
+      { headers }
+    );
+  } catch (error) {
+    console.error('Error deleting RSVP:', error);
+    return NextResponse.json(
+      { error: 'Error deleting RSVP' },
+      { status: 500, headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      }}
     );
   }
 }

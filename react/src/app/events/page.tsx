@@ -71,17 +71,14 @@ const [user, setUser] = useState<any>(null);
       const response = await fetch('http://localhost:3001/api/events');
       if (!response.ok) throw new Error('Failed to fetch events');
       const data = await response.json();
-      const formattedData = data.map((event: Event) => ({
-        ...event,
-        image: event.image.startsWith('http') 
-            ? event.image 
-            : `http://localhost:3001${event.image.startsWith('/') ? '' : '/'}${event.image}`
-      }));
       const eventsWithRSVPs = data.map((event: any) => ({
         ...event,
-        rsvpCount: event.rsvps?.reduce((sum: number, rsvp: any) => sum + rsvp.guests, 0) || 0
+        rsvpCount: event.rsvps?.reduce((sum: number, rsvp: any) => sum + rsvp.guests, 0) || 0,
+        image: event.image ? 
+          (event.image.startsWith('http') ? event.image : `http://localhost:3001${event.image}`) 
+          : null
       }));
-      setEvents(formattedData);
+      setEvents(eventsWithRSVPs);
     } catch (error) {
       console.error('Error fetching events:', error);
     }
@@ -167,39 +164,50 @@ const [user, setUser] = useState<any>(null);
         {/* Events Section */}
         {activeTab === 'events' && (
           <div className="grid md:grid-cols-2 gap-8">
-            {events.map((event) => (
-              <div key={event.id} className="bg-gray-800 rounded-lg overflow-hidden">
-                {event.image && (
-                  <div className="relative h-48">
-                    <Image
-                      src={event.image.startsWith('http') ? event.image : `/uploads/${event.image}`}
-                      alt={event.title}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                      className="object-cover"
-                      // Add this if your images are from an external domain
-                      unoptimized={true}
-                    />
-                  </div>
-                )}
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2">{event.title}</h3>
-                  <p className="text-gray-400 mb-2">{event.date} | {event.time}</p>
-                  <p className="text-gray-300 mb-4">{event.description}</p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-400">
-                      {event.rsvpCount} people attending
-                    </span>
-                    <button
-                      onClick={() => handleRSVP(event.id)}
-                      className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-colors"
-                    >
-                      RSVP
-                    </button>
+            {events.map((event) => {
+              // Calculate if event is full
+              const isFull = event.capacity && event.rsvpCount >= event.capacity;
+              
+              return (
+                <div key={event.id} className="bg-gray-800 rounded-lg overflow-hidden">
+                  {event.image && (
+                    <div className="relative h-48">
+                      <Image
+                        src={event.image}
+                        alt={event.title}
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        className="object-cover"
+                        // Add this if your images are from an external domain
+                        unoptimized={true}
+                      />
+                    </div>
+                  )}
+                  <div className="p-6">
+                    <h3 className="text-xl font-bold mb-2">{event.title}</h3>
+                    <p className="text-gray-400 mb-2">{event.date} | {event.time}</p>
+                    <p className="text-gray-300 mb-4">{event.description}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-400">
+                        {event.rsvpCount} / {event.capacity} people attending
+                      </span>
+                      {isFull ? (
+                        <span className="px-6 py-2 bg-red-500/20 text-red-400 rounded-full">
+                          Event Full
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleRSVP(event.id)}
+                          className="bg-blue-600 text-white px-6 py-2 rounded-full hover:bg-blue-700 transition-colors"
+                        >
+                          RSVP
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

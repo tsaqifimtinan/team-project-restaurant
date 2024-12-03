@@ -40,3 +40,23 @@ export async function OPTIONS() {
     }
   });
 }
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+      await prisma.transaction.delete({
+          where: {
+              id: parseInt(params.id)
+          }
+      });
+      return NextResponse.json({ message: 'Transaction deleted successfully' });
+  } catch (error) {
+      console.error('Error deleting transaction:', error);
+      return NextResponse.json(
+          { error: 'Error deleting transaction' },
+          { status: 500 }
+      );
+  }
+}
