@@ -43,18 +43,26 @@ const [user, setUser] = useState<any>(null);
   useEffect(() => {
     fetchEvents();
     fetchPromotions();
-    // Get logged in user data from localStorage
+    // Get logged in user data
     const userStr = localStorage.getItem('user');
     if (userStr) {
-      setUser(JSON.parse(userStr));
-    }
-
-    if (user) {
+      const userData = JSON.parse(userStr);
+      setUser(userData);
       setRsvpForm({
-        ...rsvpForm,
+        name: userData.name || '',
+        email: userData.email || '',
+        guests: 1
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      setRsvpForm(prev => ({
+        ...prev,
         name: user.name || '',
         email: user.email || ''
-      });
+      }));
     }
   }, [user]);
 
