@@ -35,7 +35,7 @@ interface Promotion {
   code: string;
 }
 
-  type TabType = 'menu' | 'events' | 'promotions' | 'transactions' | 'reservations' | 'eventrsvp';
+  type TabType = 'menu' | 'events' | 'promotions' | 'transactions' | 'reservations' | 'RSVP';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<TabType>('menu');
@@ -51,7 +51,7 @@ export default function AdminDashboard() {
         </div>
         <nav>
           <ul className="space-y-2">
-            {(['menu', 'events', 'promotions', 'transactions', 'reservations', 'eventrsvp'] as TabType[]).map((tab) => (
+            {(['menu', 'events', 'promotions', 'transactions', 'reservations', 'RSVP'] as TabType[]).map((tab) => (
               <li key={tab}>
                 <button
                   onClick={() => setActiveTab(tab)}
@@ -74,7 +74,7 @@ export default function AdminDashboard() {
         {activeTab === 'promotions' && <PromotionManager />}
         {activeTab === 'transactions' && <TransactionManager />}
         {activeTab === 'reservations' && <ReservationManager />}
-        {activeTab === 'eventrsvp' && <EventRSVPManager />}
+        {activeTab === 'RSVP' && <EventRSVPManager />}
       </div>
     </div>
   );
@@ -1602,13 +1602,13 @@ function EventRSVPManager() {
   const handleStatusChange = async (id: number, status: string) => {
     try {
       const response = await fetch(`http://localhost:3001/api/events/rsvps/${id}`, {
-        method: 'PATCH',
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status })
       });
-
+  
       if (response.ok) {
         fetchRSVPs();
       }
