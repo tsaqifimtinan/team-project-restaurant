@@ -37,6 +37,7 @@ model EventRSVP {
   name      String
   email     String
   guests    Int
+  status    String   @default("pending")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
