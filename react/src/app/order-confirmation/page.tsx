@@ -15,29 +15,59 @@ interface OrderDetails {
   subtotal: number;
   tax: number;
   total: number;
+  discountAmount?: number;
+  promoCode?: string;
   paymentMethod: string;
 }
 
 export default function OrderConfirmation() {
   const [order, setOrder] = useState<OrderDetails | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   
   useEffect(() => {
-    // Get order details from localStorage
-    const savedOrder = localStorage.getItem('lastOrder');
-    if (savedOrder) {
-      setOrder(JSON.parse(savedOrder));
-    } else {
-      // If no order details found, redirect to order page
+    // Wrap localStorage access in try-catch
+    try {
+      const savedOrder = window.localStorage.getItem('lastOrder');
+      if (!savedOrder) {
+        router.push('/order');
+        return;
+      }
+
+      const parsedOrder = JSON.parse(savedOrder);
+      if (!parsedOrder || typeof parsedOrder !== 'object') {
+        throw new Error('Invalid order data format');
+      }
+
+      setOrder(parsedOrder);
+    } catch (error) {
+      console.error('Error loading order:', error);
       router.push('/order');
+    } finally {
+      setIsLoading(false);
     }
   }, [router]);
 
-  if (!order) {
+  // Show loading state
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
         <div className="text-center">
           <p>Loading order details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if no order
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <div className="text-center">
+          <p>No order found</p>
+          <Link href="/order" className="text-blue-400 hover:text-blue-300">
+            Return to menu
+          </Link>
         </div>
       </div>
     );
@@ -104,15 +134,21 @@ export default function OrderConfirmation() {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Subtotal</span>
-                    <span>${order.subtotal.toFixed(2)}</span>
+                    <span>${order?.subtotal?.toFixed(2) || '0.00'}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Tax</span>
-                    <span>${order.tax.toFixed(2)}</span>
+                    <span>${order?.tax?.toFixed(2) || '0.00'}</span>
                   </div>
+                  {order?.discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-green-400">
+                      <span>Discount ({order?.promoCode})</span>
+                      <span>-${order?.discountAmount?.toFixed(2) || '0.00'}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between font-semibold text-lg pt-2 border-t border-gray-600">
                     <span>Total</span>
-                    <span>${order.total.toFixed(2)}</span>
+                    <span>${order?.total?.toFixed(2) || '0.00'}</span>
                   </div>
                 </div>
               </div>
@@ -122,25 +158,25 @@ export default function OrderConfirmation() {
                 <p className="text-gray-400">Payment Method</p>
                 <p className="font-medium">{order.paymentMethod}</p>
               </div>
-            </div>
+              </div>
 
-            <div className="text-center space-y-4">
-              <p className="text-gray-400">
-                A confirmation email has been sent to {order.email}
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link 
-                  href="/"
-                  className="inline-block bg-gray-700 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
-                >
-                  Return to Home
-                </Link>
-                <button 
-                  onClick={() => window.print()} 
-                  className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Print Receipt
-                </button>
+              <div className="text-center space-y-4">
+                <p className="text-gray-400">
+                  A confirmation email has been sent to {order.email}
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link 
+                    href="/"
+                    className="inline-block bg-gray-700 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+                  >
+                    Return to Home
+                  </Link>
+                  <button 
+                    onClick={() => window.print()} 
+                    className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Print Receipt
+                  </button>
               </div>
             </div>
           </div>

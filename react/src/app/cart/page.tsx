@@ -8,6 +8,16 @@ import Link from 'next/link';
 import { FiMinus, FiPlus, FiX } from 'react-icons/fi';
 import CheckoutModal from '../components/CheckoutModal';
 
+// Add PaymentData interface
+interface PaymentData {
+  name: string;
+  email: string;
+  finalTotal: number;
+  discountAmount?: number;
+  promoCode?: string;
+  paymentMethod: string;
+}
+
 export default function CartPage() {
   const router = useRouter();
   const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
@@ -26,16 +36,28 @@ export default function CartPage() {
   const tax = subtotal * 0.1;
   const total = subtotal + tax;
 
-  const handleCheckout = async (paymentData: any) => {
+  const handleCheckout = async (paymentData: PaymentData) => {
     try {
+      // Add validation for paymentData
+      if (typeof paymentData.finalTotal === 'undefined') {
+        console.error('Final total is missing');
+        return;
+      }
+  
       const transactionData = {
-        ...paymentData,
+        name: paymentData.name,
+        email: paymentData.email,
         cart: cart,
-        subtotal,
-        tax,
-        total
+        subtotal: parseFloat(subtotal.toFixed(2)),
+        tax: parseFloat(tax.toFixed(2)),
+        total: parseFloat(paymentData.finalTotal.toFixed(2)), // Use the final total from checkout data
+        discountAmount: paymentData.discountAmount ? parseFloat(paymentData.discountAmount.toFixed(2)) : 0,
+        promoCode: paymentData.promoCode,
+        paymentMethod: paymentData.paymentMethod
       };
-
+  
+      console.log('Transaction Data:', transactionData); // Debug log
+  
       const response = await fetch('http://localhost:3001/api/transactions', {
         method: 'POST',
         headers: {
@@ -43,20 +65,25 @@ export default function CartPage() {
         },
         body: JSON.stringify(transactionData),
       });
-
+  
       if (response.ok) {
         localStorage.setItem('lastOrder', JSON.stringify({
           name: paymentData.name,
           email: paymentData.email,
           items: cart,
-          subtotal,
-          tax,
-          total,
+          subtotal: parseFloat(subtotal.toFixed(2)),
+          tax: parseFloat(tax.toFixed(2)),
+          total: parseFloat(paymentData.finalTotal.toFixed(2)),
+          discountAmount: paymentData.discountAmount || 0,
+          promoCode: paymentData.promoCode || null,
           paymentMethod: paymentData.paymentMethod
         }));
         router.push('/order-confirmation');
         clearCart();
         setShowCheckoutModal(false);
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to process transaction');
       }
     } catch (error) {
       console.error('Error processing transaction:', error);

@@ -92,6 +92,8 @@ model Transaction {
   subtotal    Float
   tax         Float
   total       Float
+  discountAmount Float?
+  promoCode     String?
   status      String   @default("pending") // pending, completed, cancelled
   paymentMethod String
   customerName String?

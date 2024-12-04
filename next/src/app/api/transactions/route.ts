@@ -21,36 +21,49 @@ export async function GET() {
     }
 }
 
-// Create new transaction
 export async function POST(request: Request) {
-    try {
-        const data = await request.json();
-        
-        // Generate unique order number (timestamp + random string)
-        const orderNumber = `ORD${Date.now()}${Math.random().toString(36).substring(2, 7)}`.toUpperCase();
-        
-        const transaction = await prisma.transaction.create({
-            data: {
-                orderNumber,
-                items: data.cart, // Store cart items as JSON
-                subtotal: data.subtotal,
-                tax: data.tax,
-                total: data.total,
-                status: 'pending',
-                paymentMethod: data.paymentMethod,
-                customerName: data.name,
-                customerEmail: data.email
-            }
-        });
+  try {
+    const data = await request.json();
+    
+    // Generate unique order number
+    const orderNumber = `ORD${Date.now()}${Math.random().toString(36).substring(2, 7)}`.toUpperCase();
+    
+    const transactionData = {
+      orderNumber,
+      customerName: data.name,
+      customerEmail: data.email,
+      items: data.cart,
+      subtotal: Number(data.subtotal),
+      tax: Number(data.tax),
+      total: Number(data.total), // This should be the final total after discount
+      discountAmount: data.discountAmount ? Number(data.discountAmount) : 0,
+      promoCode: data.promoCode || null,
+      status: 'pending',
+      paymentMethod: data.paymentMethod || 'card'
+    };
 
-        return NextResponse.json(transaction);
-    } catch (error) {
-        console.error('Error creating transaction:', error);
-        return NextResponse.json(
-            { error: 'Error creating transaction' },
-            { status: 500 }
-        );
+    // Validate numeric values
+    if (isNaN(transactionData.subtotal) || 
+        isNaN(transactionData.tax) || 
+        isNaN(transactionData.total)) {
+      return NextResponse.json(
+        { error: 'Invalid price values in transaction data' },
+        { status: 400 }
+      );
     }
+
+    const transaction = await prisma.transaction.create({
+      data: transactionData
+    });
+
+    return NextResponse.json(transaction);
+  } catch (error) {
+    console.error('Transaction creation error:', error);
+    return NextResponse.json(
+      { error: 'Error creating transaction' },
+      { status: 500 }
+    );
+  }
 }
 
 export async function PUT(request: Request, { params }: { params: { id: string } }) {
